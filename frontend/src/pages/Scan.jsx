@@ -1,79 +1,62 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import API from "../api";
 
-function Scan() {
-
-  const [photos, setPhotos] = useState([]);
-  const [selectedImagePath, setSelectedImagePath] = useState("");
-  const [file, setFile] = useState(null);
+const Scan = () => {
+  const [image, setImage] = useState(null);
   const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadPhotos();
-  }, []);
-
-  const loadPhotos = async () => {
-    const res = await API.get("/photos");
-    setPhotos(res.data);
+  const handleFileChange = (e) => {
+    setImage(e.target.files[0]);
   };
 
-  const handleScan = async () => {
+  const handleUpload = async () => {
+    if (!image) return alert("Please select an image");
 
-    if (!selectedImagePath || !file) {
-      alert("Select both images");
-      return;
-    }
-
-    const formData = new FormData();
-
-    formData.append("image1_path", selectedImagePath); // FIX
-    formData.append("image2", file);
+    setLoading(true);
 
     try {
-      const res = await API.post("/scan", formData);
+      const formData = new FormData();
+      formData.append("image", image);
+
+      const res = await API.post("/scan", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       setResult(res.data);
     } catch (err) {
-      console.log(err);
-      alert("Scan failed");
+      console.error(err);
+      setResult({ score: 0, result: "Upload Failed" });
     }
+
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: 20 }}>
+      <h2>Deepfake Scan</h2>
 
-      <h2>Scan Duplicate Image</h2>
-
-      <select onChange={(e) => setSelectedImagePath(e.target.value)}>
-        <option value="">Select Original Image</option>
-
-        {photos.map((p, i) => (
-          <option key={i} value={p.image}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+      <input type="file" accept="image/*" onChange={handleFileChange} />
 
       <br /><br />
 
-      <input type="file" onChange={(e) => setFile(e.target.files[0])} />
-
-      <br /><br />
-
-      <button onClick={handleScan}>
-        Scan
+      <button onClick={handleUpload} disabled={loading}>
+        {loading ? "Scanning..." : "Upload & Scan"}
       </button>
 
       <br /><br />
 
       {result && (
         <div>
-          <h3>{result.result}</h3>
+          <h3>Result:</h3>
           <p>Score: {result.score}</p>
+          <p>Status: {result.result}</p>
         </div>
       )}
-
     </div>
   );
-}
+};
 
 export default Scan;

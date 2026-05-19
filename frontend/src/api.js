@@ -1,7 +1,10 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://127.0.0.1:5000",
+  baseURL: "https://deepfake-detector-1-9su9.onrender.com",
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 export default API;
