@@ -1,81 +1,25 @@
-import { useState } from "react";
-import API from "../api";
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    try:
+        print("UPLOAD HIT")
 
-function Upload() {
+        if 'file' not in request.files:
+            return jsonify({"error": "No file received"}), 400
 
-  const [image, setImage] = useState(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [message, setMessage] = useState("");
+        file = request.files['file']
 
-  const handleUpload = async (e) => {
+        if file.filename == '':
+            return jsonify({"error": "Empty file"}), 400
 
-    e.preventDefault();
+        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
 
-    if (!image) {
-      alert("Please select an image");
-      return;
-    }
+        file.save(upload_path)
 
-    const formData = new FormData();
-    formData.append("image", image);
-    formData.append("name", name);
-    formData.append("description", description);
+        return jsonify({
+            "message": "Upload success",
+            "filename": file.filename
+        }), 200
 
-    try {
-
-      const res = await API.post("/photos/upload", formData);
-
-      setMessage(res.data.message);
-
-    } catch (err) {
-      console.log(err);
-      setMessage("Upload failed");
-    }
-  };
-
-  return (
-    <div style={{ padding: "20px" }}>
-
-      <h2>Upload Image</h2>
-
-      <form onSubmit={handleUpload}>
-
-        <input
-          type="text"
-          placeholder="Enter Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        <br /><br />
-
-        <textarea
-          placeholder="Enter Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-
-        <br /><br />
-
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) => setImage(e.target.files[0])}
-        />
-
-        <br /><br />
-
-        <button type="submit">
-          Upload Image
-        </button>
-
-      </form>
-
-      <p>{message}</p>
-
-    </div>
-  );
-}
-
-export default Upload;
+    except Exception as e:
+        print("ERROR:", str(e))
+        return jsonify({"error": str(e)}), 500

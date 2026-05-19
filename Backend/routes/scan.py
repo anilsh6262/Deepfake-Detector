@@ -1,20 +1,41 @@
-from flask import Blueprint, request, jsonify
-from services.face_service import compare_faces
+from flask import request, jsonify
+import os
+import cv2
+import numpy as np
 
-scan_bp = Blueprint("scan", __name__)
+UPLOAD_FOLDER = "uploads"
 
-@scan_bp.route("/", methods=["POST"])
+def compare_images(img1_path, img2_path):
+    img1 = cv2.imread(img1_path)
+    img2 = cv2.imread(img2_path)
+
+    if img1 is None or img2 is None:
+        return 0.0
+
+    img1 = cv2.resize(img1, (200, 200))
+    img2 = cv2.resize(img2, (200, 200))
+
+    diff = cv2.absdiff(img1, img2)
+    score = 1 - (np.mean(diff) / 255)
+
+    return round(float(max(0, min(score, 1))), 4)
+
+
+@scan_bp.route("/scan", methods=["POST"])
 def scan():
+    if "image" not in request.files:
+        return jsonify({"score": 0, "result": "No Image Found"}), 400
 
-    image1_path = request.form.get("image1_path")
-    image2 = request.files.get("image2")
+    file = request.files["image"]
+    path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(path)
 
-    if not image1_path or not image2:
-        return jsonify({"error": "Missing images"}), 400
+    # If comparing with itself (demo mode)
+    score = compare_images(path, path)
 
-    temp_path = "temp.jpg"
-    image2.save(temp_path)
+    result = "Match" if score > 0.6 else "Different"
 
-    result = compare_faces(image1_path, temp_path)
-
-    return jsonify(result)
+    return jsonify({
+        "score": score,
+        "result": result
+    })
