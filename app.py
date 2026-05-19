@@ -4,22 +4,27 @@ import os
 
 app = Flask(__name__)
 
-# ✅ Strong CORS fix for Vercel frontend
-CORS(app, resources={r"/*": {"origins": "*"}})
+# Enable CORS (VERY IMPORTANT for Vercel frontend)
+CORS(app)
 
-# ✅ Render-safe upload folder (IMPORTANT)
-UPLOAD_FOLDER = "/tmp/uploads"
+# Upload folder setup
+UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# Home route
+# -----------------------------
+# HOME ROUTE
+# -----------------------------
 @app.route('/')
 def home():
     return "Backend Running Successfully"
 
 
-# Upload + Predict Route (ONLY ONE NEEDED)
+# -----------------------------
+# UPLOAD + SCAN (COMBINED FIX)
+# -----------------------------
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -27,12 +32,19 @@ def upload_file():
 
         # Check file exists
         if 'file' not in request.files:
-            return jsonify({"error": "No file received"}), 400
+            return jsonify({
+                "score": 0,
+                "status": "No file received"
+            }), 400
 
         file = request.files['file']
 
+        # Check filename
         if file.filename == '':
-            return jsonify({"error": "Empty filename"}), 400
+            return jsonify({
+                "score": 0,
+                "status": "Empty filename"
+            }), 400
 
         # Save file
         filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
@@ -40,12 +52,17 @@ def upload_file():
 
         print("File saved:", filepath)
 
-        # 🔥 Dummy prediction (replace with ML model later)
-        score = 95
-        status = "Fake Image Detected"
+        # -----------------------------
+        # DUMMY AI RESULT (replace later with ML model)
+        # -----------------------------
+        score = 0.85
+
+        if score > 0.6:
+            status = "Fake Image Detected"
+        else:
+            status = "Real Image Detected"
 
         return jsonify({
-            "message": "Upload successful",
             "filename": file.filename,
             "score": score,
             "status": status
@@ -53,10 +70,26 @@ def upload_file():
 
     except Exception as e:
         print("ERROR:", str(e))
-        return jsonify({"error": str(e)}), 500
+        return jsonify({
+            "score": 0,
+            "status": "Upload Failed",
+            "error": str(e)
+        }), 500
 
 
-# ✅ Run on Render (IMPORTANT FIX)
+# -----------------------------
+# OPTIONAL: REMOVE SCAN (NOT NEEDED)
+# -----------------------------
+@app.route('/scan', methods=['POST'])
+def scan_file():
+    return jsonify({
+        "message": "Use /upload instead"
+    })
+
+
+# -----------------------------
+# RUN APP (Render compatible)
+# -----------------------------
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)

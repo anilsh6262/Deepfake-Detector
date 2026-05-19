@@ -1,41 +1,75 @@
-from flask import request, jsonify
+from flask import Blueprint, request, jsonify
 import os
 import cv2
 import numpy as np
 
+scan_bp = Blueprint("scan_bp", __name__)
+
 UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-def compare_images(img1_path, img2_path):
-    img1 = cv2.imread(img1_path)
-    img2 = cv2.imread(img2_path)
 
-    if img1 is None or img2 is None:
+# -----------------------------
+# Helper function (simple AI placeholder)
+# -----------------------------
+def analyze_image(image_path):
+    img = cv2.imread(image_path)
+
+    if img is None:
         return 0.0
 
-    img1 = cv2.resize(img1, (200, 200))
-    img2 = cv2.resize(img2, (200, 200))
+    # Resize for consistency
+    img = cv2.resize(img, (200, 200))
 
-    diff = cv2.absdiff(img1, img2)
-    score = 1 - (np.mean(diff) / 255)
+    # Fake "deepfake score logic" (placeholder)
+    mean_intensity = np.mean(img)
 
-    return round(float(max(0, min(score, 1))), 4)
+    # Convert to probability-like score (0–1)
+    score = mean_intensity / 255
+
+    # Reverse logic so darker images = higher fake score (demo only)
+    fake_score = round(float(1 - score), 4)
+
+    return fake_score
 
 
+# -----------------------------
+# Scan Route
+# -----------------------------
 @scan_bp.route("/scan", methods=["POST"])
 def scan():
-    if "image" not in request.files:
-        return jsonify({"score": 0, "result": "No Image Found"}), 400
+    try:
+        if "file" not in request.files:
+            return jsonify({
+                "score": 0,
+                "result": "No file received"
+            }), 400
 
-    file = request.files["image"]
-    path = os.path.join(UPLOAD_FOLDER, file.filename)
-    file.save(path)
+        file = request.files["file"]
 
-    # If comparing with itself (demo mode)
-    score = compare_images(path, path)
+        if file.filename == "":
+            return jsonify({
+                "score": 0,
+                "result": "Empty file"
+            }), 400
 
-    result = "Match" if score > 0.6 else "Different"
+        path = os.path.join("uploads", file.filename)
+        file.save(path)
 
-    return jsonify({
-        "score": score,
-        "result": result
-    })
+        # 🔥 TEMP WORKING SCORE (no AI yet)
+        score = 0.85
+
+        status = "Fake Image Detected" if score > 0.6 else "Real Image Detected"
+
+        return jsonify({
+            "filename": file.filename,
+            "score": score,
+            "status": status
+        })
+
+    except Exception as e:
+        return jsonify({
+            "score": 0,
+            "status": "Upload Failed",
+            "error": str(e)
+        })
