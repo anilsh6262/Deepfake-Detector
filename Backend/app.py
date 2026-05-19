@@ -4,7 +4,9 @@ import os
 
 app = Flask(__name__)
 
-# ✅ Allow frontend (Vercel)
+# -----------------------------
+# CORS (Frontend allow)
+# -----------------------------
 CORS(app, origins=[
     "https://deepfake-detector-ecru.vercel.app"
 ])
@@ -20,7 +22,7 @@ app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB limit
 
 
 # -----------------------------
-# Home route (test backend)
+# Home route (backend test)
 # -----------------------------
 @app.route('/')
 def home():
@@ -28,7 +30,7 @@ def home():
 
 
 # -----------------------------
-# Upload API (MAIN FIX)
+# Upload API
 # -----------------------------
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -41,17 +43,15 @@ def upload_file():
 
         file = request.files['file']
 
-        # check filename
         if file.filename == '':
             return jsonify({"error": "Empty filename"}), 400
 
-        # save file
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
         file.save(filepath)
 
         print("FILE SAVED:", filepath)
 
-        # 🔥 TEMP SCORE (replace with AI model later)
+        # 🔥 TEMP SCORE (replace with AI later)
         return jsonify({
             "message": "Upload success",
             "filename": file.filename,
@@ -59,12 +59,12 @@ def upload_file():
         }), 200
 
     except Exception as e:
-        print("ERROR:", str(e))
+        print("UPLOAD ERROR:", str(e))
         return jsonify({"error": str(e)}), 500
 
 
 # -----------------------------
-# Photos API (for gallery.jsx)
+# Gallery API
 # -----------------------------
 @app.route('/photos', methods=['GET'])
 def photos():
@@ -78,14 +78,15 @@ def photos():
                 "image": f"uploads/{f}"
             })
 
-        return jsonify(data)
+        return jsonify(data), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 # -----------------------------
-# Run locally
+# IMPORTANT: Render deployment fix
 # -----------------------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
