@@ -1,25 +1,53 @@
-@app.route('/upload', methods=['POST'])
-def upload_file():
-    try:
-        print("UPLOAD HIT")
+import React, { useState } from "react";
+import axios from "axios";
 
-        if 'file' not in request.files:
-            return jsonify({"error": "No file received"}), 400
+const Upload = () => {
+  const [file, setFile] = useState(null);
+  const [result, setResult] = useState("");
 
-        file = request.files['file']
+  const handleUpload = async () => {
+    if (!file) {
+      alert("Please select a file");
+      return;
+    }
 
-        if file.filename == '':
-            return jsonify({"error": "Empty file"}), 400
+    const formData = new FormData();
+    formData.append("file", file);
 
-        upload_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    try {
+      const response = await axios.post(
+        "https://deepfake-detector-1-9su9.onrender.com/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
-        file.save(upload_path)
+      setResult(JSON.stringify(response.data));
+    } catch (error) {
+      console.error(error);
+      setResult("Upload Failed");
+    }
+  };
 
-        return jsonify({
-            "message": "Upload success",
-            "filename": file.filename
-        }), 200
+  return (
+    <div>
+      <h1>Deepfake Detector</h1>
 
-    except Exception as e:
-        print("ERROR:", str(e))
-        return jsonify({"error": str(e)}), 500
+      <input
+        type="file"
+        onChange={(e) => setFile(e.target.files[0])}
+      />
+
+      <button onClick={handleUpload}>
+        Upload
+      </button>
+
+      <p>{result}</p>
+    </div>
+  );
+};
+
+export default Upload;
