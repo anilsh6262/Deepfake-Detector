@@ -16,7 +16,7 @@ const Upload = () => {
 
     try {
       const response = await axios.post(
-        "https://deepfake-detector-1-9su9.onrender.com/upload",
+        "https://deepfake-detector-2-gwe8.onrender.com/upload",
         formData,
         {
           headers: {
