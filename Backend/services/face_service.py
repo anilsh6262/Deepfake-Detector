@@ -1,29 +1,36 @@
-from deepface import DeepFace
+import cv2
+import numpy as np
 
 def compare_faces(img1_path, img2_path):
+    """
+    Compare two images using simple OpenCV difference method
+    Returns similarity score and result
+    """
 
-    try:
-        result = DeepFace.verify(
-            img1_path,
-            img2_path,
-            enforce_detection=False
-        )
+    img1 = cv2.imread(img1_path)
+    img2 = cv2.imread(img2_path)
 
-        print("DEBUG RESULT:", result)  # IMPORTANT
-
-        distance = result["distance"]
-
-        score = (1 - distance) * 100
-
+    # Safety check
+    if img1 is None or img2 is None:
         return {
-            "result": "Duplicate" if score > 60 else "Original",
-            "score": float(round(score, 2))
+            "score": 0.0,
+            "result": "Invalid image"
         }
 
-    except Exception as e:
-        print("ERROR:", str(e))
-        return {
-            "result": "Error",
-            "score": 0,
-            "error": str(e)
-        }
+    # Resize images to same size
+    img1 = cv2.resize(img1, (200, 200))
+    img2 = cv2.resize(img2, (200, 200))
+
+    # Convert difference
+    diff = cv2.absdiff(img1, img2)
+
+    # Normalize score (0 to 1)
+    score = 1 - (np.mean(diff) / 255)
+
+    # Clamp score between 0 and 1
+    score = max(0.0, min(1.0, score))
+
+    return {
+        "score": float(round(score, 4)),
+        "result": "Match" if score > 0.6 else "Different"
+    }
