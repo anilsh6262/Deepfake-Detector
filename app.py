@@ -4,27 +4,22 @@ import os
 
 app = Flask(__name__)
 
-# Enable CORS (VERY IMPORTANT for Vercel frontend)
+# allow frontend (Vercel)
 CORS(app)
 
-# Upload folder setup
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# -----------------------------
-# HOME ROUTE
-# -----------------------------
 @app.route('/')
 def home():
     return "Backend Running Successfully"
 
 
-# -----------------------------
-# UPLOAD + SCAN (COMBINED FIX)
-# -----------------------------
+# -------------------------
+# MAIN UPLOAD ROUTE (ONLY ONE YOU NEED)
+# -------------------------
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -49,13 +44,15 @@ def upload_file():
 
         print("File saved:", filepath)
 
-        # 🔥 FORCE VALID SCORE ALWAYS
+        # -------------------------
+        # TEMP AI LOGIC
+        # -------------------------
         score = 0.85
         status = "Fake Image Detected"
 
         return jsonify({
             "filename": file.filename,
-            "score": float(score),   # IMPORTANT FIX
+            "score": score,
             "status": status
         })
 
@@ -65,3 +62,16 @@ def upload_file():
             "score": 0,
             "status": "Upload Failed"
         }), 500
+
+
+# REMOVE CONFUSION ROUTE (OPTIONAL SAFE)
+@app.route('/scan', methods=['POST'])
+def scan():
+    return jsonify({
+        "message": "Use /upload instead"
+    })
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
