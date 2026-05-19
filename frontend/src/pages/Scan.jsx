@@ -2,22 +2,27 @@ import React, { useState } from "react";
 import API from "../api";
 
 const Scan = () => {
-  const [image, setImage] = useState(null);
+  const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // File select
   const handleFileChange = (e) => {
-    setImage(e.target.files[0]);
+    setFile(e.target.files[0]);
   };
 
-  const handleUpload = async () => {
-    if (!image) return alert("Please select an image");
+  // Upload + Scan
+  const handleScan = async () => {
+    if (!file) {
+      alert("Please select an image first");
+      return;
+    }
 
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("image", image);
+      formData.append("image", file); // MUST match backend key
 
       const res = await API.post("/scan", formData, {
         headers: {
@@ -25,32 +30,44 @@ const Scan = () => {
         },
       });
 
-      setResult(res.data);
-    } catch (err) {
-      console.error(err);
-      setResult({ score: 0, result: "Upload Failed" });
+      console.log("API RESPONSE:", res.data);
+
+      setResult({
+        score: res.data.score,
+        result: res.data.result,
+      });
+    } catch (error) {
+      console.error("Upload Error:", error);
+
+      setResult({
+        score: 0,
+        result: "Upload Failed",
+      });
     }
 
     setLoading(false);
   };
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: "20px" }}>
       <h2>Deepfake Scan</h2>
 
+      {/* File Input */}
       <input type="file" accept="image/*" onChange={handleFileChange} />
 
       <br /><br />
 
-      <button onClick={handleUpload} disabled={loading}>
+      {/* Button */}
+      <button onClick={handleScan} disabled={loading}>
         {loading ? "Scanning..." : "Upload & Scan"}
       </button>
 
       <br /><br />
 
+      {/* Result */}
       {result && (
         <div>
-          <h3>Result:</h3>
+          <h3>Result</h3>
           <p>Score: {result.score}</p>
           <p>Status: {result.result}</p>
         </div>
