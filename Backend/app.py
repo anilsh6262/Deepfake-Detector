@@ -4,89 +4,86 @@ import os
 
 app = Flask(__name__)
 
-# -----------------------------
-# CORS (Frontend allow)
-# -----------------------------
-CORS(app, origins=[
-    "https://deepfake-detector-ecru.vercel.app"
-])
+# Enable CORS
+CORS(app)
 
-# -----------------------------
 # Upload folder setup
-# -----------------------------
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024  # 16MB limit
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-# -----------------------------
-# Home route (backend test)
-# -----------------------------
+# Home route
 @app.route('/')
 def home():
-    return "Backend is running successfully"
+    return "Backend Running Successfully"
 
 
-# -----------------------------
-# Upload API
-# -----------------------------
+# Upload Route
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
-        print("UPLOAD HIT")
+        print("UPLOAD API HIT")
 
-        # check file exists
+        # Check file
         if 'file' not in request.files:
-            return jsonify({"error": "No file sent"}), 400
+            return jsonify({"error": "No file received"}), 400
+
+        file = request.files['file']
+
+        # Empty filename
+        if file.filename == '':
+            return jsonify({"error": "Empty filename"}), 400
+
+        # Save file
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+
+        file.save(filepath)
+
+        print("File saved:", filepath)
+
+        return jsonify({
+            "message": "Upload successful",
+            "filename": file.filename,
+            "path": filepath
+        })
+
+    except Exception as e:
+        print("ERROR:", str(e))
+        return jsonify({"error": str(e)}), 500
+
+
+# Deepfake Scan Route
+@app.route('/scan', methods=['POST'])
+def scan_file():
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file received"}), 400
 
         file = request.files['file']
 
         if file.filename == '':
             return jsonify({"error": "Empty filename"}), 400
 
-        filepath = os.path.join(app.config["UPLOAD_FOLDER"], file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+
         file.save(filepath)
 
-        print("FILE SAVED:", filepath)
+        # Dummy prediction
+        score = 95
+        status = "Fake Image Detected"
 
-        # 🔥 TEMP SCORE (replace with AI later)
         return jsonify({
-            "message": "Upload success",
             "filename": file.filename,
-            "score": 0.87
-        }), 200
-
-    except Exception as e:
-        print("UPLOAD ERROR:", str(e))
-        return jsonify({"error": str(e)}), 500
-
-
-# -----------------------------
-# Gallery API
-# -----------------------------
-@app.route('/photos', methods=['GET'])
-def photos():
-    try:
-        files = os.listdir(UPLOAD_FOLDER)
-
-        data = []
-        for f in files:
-            data.append({
-                "name": f,
-                "image": f"uploads/{f}"
-            })
-
-        return jsonify(data), 200
+            "score": score,
+            "status": status
+        })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
-# -----------------------------
-# IMPORTANT: Render deployment fix
-# -----------------------------
+# Run App
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=10000)
